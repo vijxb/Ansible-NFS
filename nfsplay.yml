@@ -1,0 +1,55 @@
+---
+ 
+- hosts: all
+  become: true
+  tasks:
+
+  - name: yum update
+    yum:
+      update_cache: yes
+
+  - name: install nfs & dependencies
+    yum:
+      name:
+        - nfs-utils
+        - rpcbind
+      state: latest
+  
+  - name: start and enable nfs and services
+    service:
+      name: nfs-server
+      state: started
+      enabled: yes
+  
+  - name: enable and start rpcbind
+    service:
+      name: rpcbind
+      state: started
+      enabled: yes
+
+  - name: disable selinux
+    selinux:
+      state: disabled
+
+  - name: Creates directory
+    file:
+      path: /testnfs
+      state: directory
+      mode: 0775
+
+  - name: configure /etc/exports
+    lineinfile:
+      path: /etc/exports
+      regexp: '^/testnfs'
+      line: "/testnfs 10.0.0.120(rw,sync,no_root_squash)"
+  
+  - name: stop firewalld
+    service:
+      name: firewalld
+      state: stopped
+      enabled: false
+
+  - name: configure /etc/fstab to make nfs boot persistent
+    lineinfile:
+      path: /etc/fstab
+      line: "/testnfs   /mount_nfs      nfs     defaults        0 0"
